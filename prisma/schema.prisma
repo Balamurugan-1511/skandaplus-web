@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                     Int                @id @default(autoincrement())
+  first_name             String             @default("")
+  last_name              String             @default("")
+  name                   String
+  email                  String             @unique
+  password_hash          String
+  role                   String
+  org                    String?
+  phone                  String?
+  photo_url              String?
+  education              String?
+  dob                    String?
+  gender                 String?
+  created_at             DateTime           @default(now())
+  reset_token            String?            @unique
+  reset_token_expiry     DateTime?
+  blogs                  Blog[]
+  enrollments            Enrollment[]
+  payment_status_changes PaymentStatusLog[]
+  reviews                Review[]
+  saved_jobs             SavedJob[]
+
+  @@map("users")
+}
+
+model Course {
+  id               Int              @id @default(autoincrement())
+  slug             String           @unique
+  title            String
+  category         String
+  course_type      String           @default("training")
+  description      String?
+  href             String?
+  duration         String?
+  level            String?
+  price            Decimal
+  is_active        Boolean          @default(true)
+  cover_image_url  String?
+  long_description String[]         @default([])
+  what_you_learn   String[]         @default([])
+  curriculum       Json?
+  tools            String[]         @default([])
+  prerequisites    String[]         @default([])
+  who_is_this_for  String[]         @default([])
+  duration_days    Int?             @default(30)
+  materials        CourseMaterial[]
+  enquiries        Enquiry[]
+  enrollments      Enrollment[]
+  reviews          Review[]
+
+  @@map("courses")
+}
+
+model CourseMaterial {
+  id          Int      @id @default(autoincrement())
+  course_id   Int
+  title       String
+  type        String
+  file_url    String
+  sort_order  Int      @default(0)
+  uploaded_at DateTime @default(now())
+  course      Course   @relation(fields: [course_id], references: [id])
+
+  @@map("course_materials")
+}
+
+model Enrollment {
+  id               Int                @id @default(autoincrement())
+  user_id          Int
+  course_id        Int
+  payment_status   String             @default("pending")
+  amount_total     Decimal?
+  amount_paid      Decimal            @default(0)
+  utr              String?            @unique
+  enrolled_at      DateTime           @default(now())
+  verified_at      DateTime?
+  next_due_at      DateTime?
+  status           String             @default("ongoing")
+  expires_at       DateTime?
+  reminder_sent_at DateTime?
+  start_date       DateTime?
+  course           Course             @relation(fields: [course_id], references: [id])
+  user             User               @relation(fields: [user_id], references: [id])
+  status_logs      PaymentStatusLog[]
+
+  @@map("enrollments")
+}
+
+model PaymentStatusLog {
+  id            Int        @id @default(autoincrement())
+  enrollment_id Int
+  admin_id      Int?
+  admin_name    String
+  from_status   String?
+  to_status     String
+  amount_paid   Decimal
+  note          String?
+  created_at    DateTime   @default(now())
+  admin         User?      @relation(fields: [admin_id], references: [id])
+  enrollment    Enrollment @relation(fields: [enrollment_id], references: [id])
+
+  @@map("payment_status_logs")
+}
+
+model Enquiry {
+  id         Int      @id @default(autoincrement())
+  course_id  Int?
+  name       String
+  email      String
+  phone      String?
+  message    String
+  status     String   @default("new")
+  created_at DateTime @default(now())
+  course     Course?  @relation(fields: [course_id], references: [id])
+
+  @@map("enquiries")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  course_id  Int
+  rating     Int
+  comment    String?
+  created_at DateTime @default(now())
+  course     Course   @relation(fields: [course_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@map("reviews")
+}
+
+model Blog {
+  id           Int      @id @default(autoincrement())
+  author_id    Int
+  slug         String   @unique
+  title        String
+  category     String?
+  excerpt      String?
+  body         String
+  image_url    String?
+  image_alt    String?
+  status       String   @default("published")
+  published_at DateTime @default(now())
+  author       User     @relation(fields: [author_id], references: [id])
+
+  @@map("blogs")
+}
+
+model Job {
+  id               Int              @id @default(autoincrement())
+  title            String
+  department       String?
+  location         String?
+  work_mode        String?
+  employment_type  String?          @default("Full-time")
+  experience_level String?
+  description      String?
+  requirements     String[]         @default([])
+  is_active        Boolean          @default(true)
+  applications     JobApplication[]
+  saved_by         SavedJob[]
+
+  @@map("jobs")
+}
+
+model SavedJob {
+  id       Int      @id @default(autoincrement())
+  user_id  Int
+  job_id   Int
+  saved_at DateTime @default(now())
+  job      Job      @relation(fields: [job_id], references: [id])
+  user     User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, job_id])
+  @@map("saved_jobs")
+}
+
+model JobApplication {
+  id         Int      @id @default(autoincrement())
+  job_id     Int?
+  job_title  String?
+  name       String
+  email      String
+  phone      String?
+  resume_url String?
+  status     String   @default("new")
+  applied_at DateTime @default(now())
+  job        Job?     @relation(fields: [job_id], references: [id])
+
+  @@map("job_applications")
+}
